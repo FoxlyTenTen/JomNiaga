@@ -16,7 +16,10 @@
 By streamlining onboarding into a **single, reusable flow**, JomNiaga reduces paperwork, minimizes dropout rates, and unlocks continuous access to financial tools. The platform nudges MSMEs toward better financial practices while supporting **sustainability** and **inclusivity** as part of Malaysia's evolving digital payment ecosystem.
 
 ---
+## 📄 JomNiaga Pitch Deck
 
+<small>[👉 Click here to view the Pitch Deck](./JomNiagaPitchDeck.pdf)</small>
+---
 ## Get Started with JomNiaga  
 This guide will walk you through setting up the JomNiaga app on your machine using Expo Go.  
 1. Download Expo Go app from App store or Google Playstore.
