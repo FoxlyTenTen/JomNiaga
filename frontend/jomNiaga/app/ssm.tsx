@@ -16,7 +16,6 @@ export default function SSMOCRScreen() {
   }, []);
 
   const [imageUri, setImageUri] = useState(null);
-  const [base64Image, setBase64Image] = useState("");
   const [loading, setLoading] = useState(false);
   const [agreed, setAgreed] = useState(false);
 
@@ -29,13 +28,24 @@ export default function SSMOCRScreen() {
 
     let result = await ImagePicker.launchCameraAsync({
       quality: 0.8,
-      base64: true,
     });
 
     if (!result.canceled) {
       setImageUri(result.assets[0].uri);
-      setBase64Image(result.assets[0].base64);
     }
+  };
+
+  const mockExtractedData = {
+    ic_number: "041222081071",
+    full_name: "MUHAMMAD IZZUL DANISH BIN ABDUL RASIB",
+    address_1: "NO 31",
+    address_2: "PERSIARAN MAKMUR 3 TAMAN MAKMUR",
+    postcode: "31100",
+    city: "SG SIPUT",
+    state: "PERAK",
+    religion: "ISLAM",
+    gender: "LELAKI",
+    nationality: "WARGANEGARA"
   };
 
   const processOCR = async () => {
@@ -44,42 +54,23 @@ export default function SSMOCRScreen() {
       return;
     }
 
-    if (!base64Image) {
+    if (!imageUri) {
       alert("Please capture your IC first.");
       return;
     }
 
     setLoading(true);
 
-    try {
-      const response = await fetch('https://jomniagabackend.onrender.com/ocr', { // Replace with your ngrok URL
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ base64Image }),
-      });
-
-      if (!response.ok) {
-        throw new Error("OCR API failed");
-      }
-
-      const extractedJSON = await response.json();
-
-      console.log("Extracted JSON:", extractedJSON);
-
+    setTimeout(() => {
       router.push({
         pathname: "/signature",
         params: {
           ...params,
-          extractedText: JSON.stringify(extractedJSON),
-        }
+          extractedText: JSON.stringify(mockExtractedData),
+        },
       });
-
-    } catch (error) {
-      console.error("OCR API error:", error);
-      alert("Error reading IC details. Please try again.");
-    } finally {
       setLoading(false);
-    }
+    }, 1000); // Simulate brief loading delay
   };
 
   const skipScan = () => {
@@ -92,19 +83,8 @@ export default function SSMOCRScreen() {
       pathname: "/signature",
       params: {
         ...params,
-        extractedText: JSON.stringify({
-          ic_number: "",
-          full_name: "",
-          address_1: "",
-          address_2: "",
-          postcode: "",
-          city: "",
-          state: "",
-          religion: "",
-          gender: "",
-          nationality: ""
-        }),
-      }
+        extractedText: JSON.stringify(mockExtractedData),
+      },
     });
   };
 

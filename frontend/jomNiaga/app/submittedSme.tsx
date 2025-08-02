@@ -1,31 +1,48 @@
-import React from 'react';
-import { SafeAreaView, StyleSheet, Text, View, TouchableOpacity, ScrollView } from 'react-native';
+import React, { useState } from 'react';
+import { SafeAreaView, StyleSheet, Text, View, TouchableOpacity, ScrollView, Alert } from 'react-native';
 import { Ionicons, Feather } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 
-export default function LoanStatus() {
+export default function SubmittedSME() {
   const router = useRouter();
+  const params = useLocalSearchParams();
+
+  const [submitted, setSubmitted] = useState(false);
+
+  const handleSubmit = () => {
+    // Get the current date and format it as dd-mm-yy
+    const currentDate = new Date();
+    const formattedDate = `${("0" + currentDate.getDate()).slice(-2)}-${("0" + (currentDate.getMonth() + 1)).slice(-2)}-${currentDate.getFullYear().toString().slice(-2)}`;
+
+    // Show alert with formatted timestamp
+    Alert.alert("Success", `Your form has been submitted! Timestamp: ${formattedDate}`);
+    setSubmitted(true);
+  };
 
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={{ flexGrow: 1, justifyContent: 'center' }}>
-        {/* Success Icon Only */}
+        {/* Success Icon */}
         <View style={styles.successIcon}>
           <Ionicons name="checkmark-circle" size={70} color="#30c2b7" />
         </View>
 
-        <Text style={styles.title}>Your application has been{"\n"}submitted successfully!</Text>
+        <Text style={styles.title}>
+          {submitted ? "Your application has been\nsubmitted successfully!" : "Submitting your application..."}
+        </Text>
 
-        {/* Loan Summary Card */}
+        {/* Application Summary Card */}
         <View style={styles.card}>
-          <Text style={styles.loanTitle}>Maybank SME First Loan</Text>
-          <Text style={styles.loanSub}>RM 50,000   |   36 months</Text>
+          <Text style={styles.loanTitle}>SSM MSME Registration</Text>
+          <Text style={styles.loanSub}>ID: {params.userId || "N/A"}</Text>
 
           <View style={styles.step}>
-            <Feather name="check-circle" size={20} color="#30c2b7" />
+            <Feather name={submitted ? "check-circle" : "clock"} size={20} color={submitted ? "#30c2b7" : "#f5a623"} />
             <Text style={styles.stepText}>Application Submitted</Text>
-            <Text style={styles.completed}>Completed</Text>
+            <Text style={submitted ? styles.completed : styles.inProgress}>
+              {submitted ? "Completed" : "In Progress"}
+            </Text>
           </View>
 
           <View style={styles.step}>
@@ -34,22 +51,17 @@ export default function LoanStatus() {
             <Text style={styles.inProgress}>In Progress</Text>
           </View>
 
-          <View style={styles.step}>
-            <Feather name="clock" size={20} color="#f5a623" />
-            <Text style={styles.stepText}>Credit Assessment</Text>
-            <Text style={styles.inProgress}>In Progress</Text>
-          </View>
-
-          <View style={styles.step}>
-            <Feather name="circle" size={20} color="#ccc" />
-            <Text style={styles.stepText}>Approval Decision</Text>
-            <Text style={styles.pending}>Pending</Text>
-          </View>
-
           <Text style={styles.note}>
-            You'll be notified when your application status is updated.
+            Your data has been stored. You’ll be notified when the status updates.
           </Text>
         </View>
+
+        {/* Submit Button */}
+        <TouchableOpacity style={styles.homeButton} onPress={handleSubmit}>
+          <LinearGradient colors={['#30c2b7', '#26a69a']} style={styles.buttonGradient}>
+            <Text style={styles.buttonText}>Submit</Text>
+          </LinearGradient>
+        </TouchableOpacity>
 
         {/* Back to Home Button */}
         <TouchableOpacity style={styles.homeButton} onPress={() => router.replace('/(tabs)')}>
@@ -57,7 +69,6 @@ export default function LoanStatus() {
             <Text style={styles.buttonText}>Back to Home</Text>
           </LinearGradient>
         </TouchableOpacity>
-
       </ScrollView>
     </SafeAreaView>
   );
@@ -118,11 +129,6 @@ const styles = StyleSheet.create({
     color: '#f5a623',
     fontWeight: 'bold',
   },
-  pending: {
-    fontSize: 12,
-    color: '#ccc',
-    fontWeight: 'bold',
-  },
   note: {
     fontSize: 12,
     color: '#888',
@@ -134,6 +140,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     alignSelf: 'center',
     width: '100%',
+    marginBottom: 10,
   },
   buttonGradient: {
     paddingVertical: 15,

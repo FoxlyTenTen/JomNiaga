@@ -1,253 +1,196 @@
-import React, { useState, useEffect } from 'react';
-import { SafeAreaView, StyleSheet, Text, View, TouchableOpacity, Image, ScrollView, TextInput } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { SafeAreaView, StyleSheet, Text, View, TouchableOpacity, ScrollView, Alert } from 'react-native';
+import { Ionicons, Feather } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams } from 'expo-router';
+import { LinearGradient } from 'expo-linear-gradient';
+import { getFirestore, doc, setDoc, updateDoc, getDoc, arrayUnion } from "firebase/firestore";
+import { getAuth } from "firebase/auth";
 
-export default function ConfirmationPage() {
+export default function SubmittedSME() {
   const router = useRouter();
   const params = useLocalSearchParams();
+  const auth = getAuth();
+  const db = getFirestore();
+  const user = auth.currentUser;
 
-  const {
-    extractedText,
-    selectedDate,
-    businessType,
-    industry,
-    address1,
-    address2,
-    postcode,
-    city,
-    state,
-    signature
-  } = params;
-
-  const defaultIcData = {
-    ic_number: '',
-    full_name: '',
-    address_1: '',
-    address_2: '',
-    postcode: '',
-    city: '',
-    state: '',
-    religion: '',
-    gender: '',
-    nationality: ''
-  };
-
-  const [icData, setIcData] = useState(defaultIcData);
-
-  const [businessData, setBusinessData] = useState({
-    selectedDate: selectedDate || '',
-    businessType: businessType || '',
-    industry: industry || '',
-    address1: address1 || '',
-    address2: address2 || '',
-    postcode: postcode || '',
-    city: city || '',
-    state: state || '',
-  });
-
-  const [isSubmitted, setIsSubmitted] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
 
   useEffect(() => {
-    if (extractedText) {
-      try {
-        const parsedData = JSON.parse(extractedText);
-
-        setIcData({
-          ic_number: parsedData.ic_number || '',
-          full_name: parsedData.full_name || '',
-          address_1: parsedData.address_1 || '',
-          address_2: parsedData.address_2 || '',
-          postcode: parsedData.postcode || '',
-          city: parsedData.city || '',
-          state: parsedData.state || '',
-          religion: parsedData.religion || '',
-          gender: parsedData.gender || '',
-          nationality: parsedData.nationality || '',
-        });
-
-        setBusinessData(prev => ({
-          ...prev,
-          address1: address1 || parsedData.address_1 || '',
-          address2: address2 || parsedData.address_2 || '',
-          postcode: postcode || parsedData.postcode || '',
-          city: city || parsedData.city || '',
-          state: state || parsedData.state || '',
-        }));
-      } catch (e) {
-        console.error("Failed to parse extractedText:", e);
-        alert("Invalid or malformed IC data. Please check the input.");
+    const submitDataToFirestore = async () => {
+      if (!user) {
+        Alert.alert("Authentication Error", "User not signed in.");
+        return;
       }
-    }
-  }, [extractedText, address1, address2, postcode, city, state]);
 
-  const formatDateForDisplay = (dateStr) => {
-    if (!dateStr) return '';
-    const date = new Date(dateStr);
-    if (isNaN(date)) return dateStr; // fallback to raw if invalid
+      const userDocRef = doc(db, "MSME_ID", user.uid);
 
-    const day = String(date.getDate()).padStart(2, '0');
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const year = date.getFullYear();
+      const payload = {
+        user_id: user.uid,
+        submitted_at: new Date(),
+        ssm_details: {
+          selectedDate: params.selectedDate || "",
+          businessType: params.businessType || "",
+          industry: params.industry || "",
+          address1: params.address1 || "",
+          address2: params.address2 || "",
+          postcode: params.postcode || "",
+          city: params.city || "",
+          state: params.state || "",
+        },
+        ic_info: params.extractedText ? JSON.parse(params.extractedText) : {},
+      };
 
-    return `${day}-${month}-${year}`;
-  };
+      try {
+        const docSnap = await getDoc(userDocRef);
+        if (docSnap.exists()) {
+          // If document exists, update the data with a new conversation
+          await updateDoc(userDocRef, {
+              summary: payload,
+              timestamp: new Date(),
+          });
+        } else {
+          // If document does not exist, create a new document
+          await setDoc(userDocRef, {
 
-  const formatDateForStorage = (inputStr) => {
-    const parts = inputStr.split('-');
-    if (parts.length === 3) {
-      const [day, month, year] = parts;
-      return `${year}-${month}-${day}`; // back to YYYY-MM-DD
-    }
-    return inputStr; // fallback if not in expected format
-  };
+                summary: payload,
+                timestamp: new Date(),
+          });
+        }
 
-  const handleBusinessChange = (field, value) => {
-    if (field === 'selectedDate') {
-      setBusinessData({ ...businessData, selectedDate: formatDateForStorage(value) });
-    } else {
-      setBusinessData({ ...businessData, [field]: value });
-    }
-  };
+        setSubmitted(true);
+        console.log("✅ Data saved for user:", user.uid);
+        Alert.alert("Success", "Your data has been submitted to the cloud.");
+      } catch (error) {
+        console.error("❌ Firestore submission error:", error);
+        Alert.alert("Error", "Failed to submit your data. Please try again.");
+      }
+    };
 
-  const handleIcChange = (field, value) => {
-    setIcData({ ...icData, [field]: value });
-  };
-
-  const handleFinalSubmit = () => {
-    console.log("Final Business Data:", businessData);
-    console.log("Final IC Data:", icData);
-    alert("Registration submitted!");
-    setIsSubmitted(true);
-  };
-
-  const formatBusinessLabel = (key) => {
-    switch (key) {
-      case 'selectedDate': return 'Business Start Date';
-      case 'businessType': return 'Business Type';
-      case 'industry': return 'Industry';
-      case 'address1': return 'Business Address Line 1';
-      case 'address2': return 'Business Address Line 2';
-      case 'postcode': return 'Business Postcode';
-      case 'city': return 'Business City';
-      case 'state': return 'Business State';
-      default: return key;
-    }
-  };
+    submitDataToFirestore();
+  }, [params]);
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView>
-        <Text style={styles.header}>Confirm & Edit Your Details</Text>
-
-        <Text style={styles.sectionTitle}>Business Information</Text>
-        <View style={styles.section}>
-          {Object.entries(businessData).map(([key, value]) => (
-            <View key={key} style={styles.inputGroup}>
-              <Text style={styles.label}>{formatBusinessLabel(key)}</Text>
-              <TextInput
-                style={styles.input}
-                value={key === 'selectedDate' ? formatDateForDisplay(value) : value}
-                onChangeText={(text) => handleBusinessChange(key, text)}
-              />
-            </View>
-          ))}
+      <ScrollView contentContainerStyle={{ flexGrow: 1, justifyContent: 'center' }}>
+        {/* Success Icon */}
+        <View style={styles.successIcon}>
+          <Ionicons name="checkmark-circle" size={70} color="#30c2b7" />
         </View>
 
-        <Text style={styles.sectionTitle}>IC Information (Extracted)</Text>
-        <View style={styles.section}>
-          {Object.entries(icData).map(([key, value]) => (
-            <View key={key} style={styles.inputGroup}>
-              <Text style={styles.label}>{key.replace(/_/g, ' ').toUpperCase()}</Text>
-              <TextInput
-                style={styles.input}
-                value={value}
-                onChangeText={(text) => handleIcChange(key, text)}
-              />
-            </View>
-          ))}
+        <Text style={styles.title}>
+          {submitted ? "Your application has been\nsubmitted successfully!" : "Submitting your application..."}
+        </Text>
 
-          <Text style={styles.label}>Signature:</Text>
-          {signature ? (
-            <Image source={{ uri: signature }} style={styles.signatureImage} />
-          ) : (
-            <Text style={{ color: '#999', fontStyle: 'italic' }}>No signature provided</Text>
-          )}
+        {/* Application Summary Card */}
+        <View style={styles.card}>
+          <Text style={styles.loanTitle}>SSM MSME Registration</Text>
+          <Text style={styles.loanSub}>ID: {user?.uid || "N/A"}</Text>
+
+          <View style={styles.step}>
+            <Feather name={submitted ? "check-circle" : "clock"} size={20} color={submitted ? "#30c2b7" : "#f5a623"} />
+            <Text style={styles.stepText}>Application Submitted</Text>
+            <Text style={submitted ? styles.completed : styles.inProgress}>
+              {submitted ? "Completed" : "In Progress"}
+            </Text>
+          </View>
+
+          <View style={styles.step}>
+            <Feather name="clock" size={20} color="#f5a623" />
+            <Text style={styles.stepText}>Document Verification</Text>
+            <Text style={styles.inProgress}>In Progress</Text>
+          </View>
+
+          <Text style={styles.note}>
+            Your data has been stored. You’ll be notified when the status updates.
+          </Text>
         </View>
 
-        <TouchableOpacity style={styles.submitButton} onPress={handleFinalSubmit}>
-          <Text style={styles.submitButtonText}>Submit Registration</Text>
+        {/* Back to Home Button */}
+        <TouchableOpacity style={styles.homeButton} onPress={() => router.replace('/(tabs)')}>
+          <LinearGradient colors={['#30c2b7', '#26a69a']} style={styles.buttonGradient}>
+            <Text style={styles.buttonText}>Back to Home</Text>
+          </LinearGradient>
         </TouchableOpacity>
-
-        {isSubmitted && (
-          <TouchableOpacity
-            style={[styles.submitButton, { backgroundColor: '#555' }]}
-            onPress={() => router.replace('/(tabs)')}
-          >
-            <Text style={styles.submitButtonText}>Back to Home</Text>
-          </TouchableOpacity>
-        )}
       </ScrollView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff', padding: 20, marginTop: 30 },
-  header: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: '#30c2b7',
-    marginBottom: 20,
-    textAlign: 'center'
-  },
-  sectionTitle: {
+  container: { flex: 1, backgroundColor: '#fff', padding: 20 },
+  successIcon: { alignItems: 'center', marginBottom: 20 },
+  title: {
+    textAlign: 'center',
     fontSize: 18,
+    color: '#333',
+    fontWeight: 'bold',
+    marginBottom: 20,
+  },
+  card: {
+    backgroundColor: '#fff',
+    borderRadius: 15,
+    padding: 20,
+    shadowColor: '#000',
+    shadowOpacity: 0.05,
+    shadowOffset: { width: 0, height: 3 },
+    shadowRadius: 8,
+    elevation: 2,
+    borderWidth: 1,
+    borderColor: '#eee',
+    marginBottom: 30,
+  },
+  loanTitle: {
+    fontSize: 16,
     fontWeight: 'bold',
     color: '#30c2b7',
-    marginTop: 20,
-    marginBottom: 10,
+    marginBottom: 5,
   },
-  section: {
-    backgroundColor: '#f5f5f5',
-    borderRadius: 10,
-    padding: 15,
-    marginBottom: 20
-  },
-  inputGroup: {
+  loanSub: {
+    fontSize: 12,
+    color: '#888',
     marginBottom: 15,
   },
-  label: {
-    fontSize: 14,
-    color: '#888',
-    marginBottom: 5
+  step: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 15,
   },
-  input: {
-    backgroundColor: '#fff',
-    borderColor: '#ccc',
-    borderWidth: 1,
-    borderRadius: 8,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
+  stepText: {
+    flex: 1,
+    marginLeft: 10,
     fontSize: 14,
     color: '#333',
   },
-  signatureImage: {
-    width: '100%',
-    height: 150,
-    resizeMode: 'contain',
-    marginTop: 10,
-    borderRadius: 5
+  completed: {
+    fontSize: 12,
+    color: '#30c2b7',
+    fontWeight: 'bold',
   },
-  submitButton: {
-    backgroundColor: '#30c2b7',
+  inProgress: {
+    fontSize: 12,
+    color: '#f5a623',
+    fontWeight: 'bold',
+  },
+  note: {
+    fontSize: 12,
+    color: '#888',
+    marginTop: 20,
+    textAlign: 'center',
+  },
+  homeButton: {
+    borderRadius: 25,
+    overflow: 'hidden',
+    alignSelf: 'center',
+    width: '100%',
+  },
+  buttonGradient: {
     paddingVertical: 15,
     borderRadius: 25,
     alignItems: 'center',
-    marginBottom: 30
   },
-  submitButtonText: {
+  buttonText: {
     color: '#fff',
-    fontSize: 16,
     fontWeight: 'bold',
+    fontSize: 15,
   },
 });

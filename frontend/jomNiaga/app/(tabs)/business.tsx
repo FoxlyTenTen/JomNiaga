@@ -1,56 +1,60 @@
 import React, { useState, useEffect } from 'react';
-import { SafeAreaView, StyleSheet, Text, View, TouchableOpacity, ScrollView, Image, ActivityIndicator, Alert } from 'react-native';
+import {
+  SafeAreaView,
+  StyleSheet,
+  Text,
+  View,
+  TouchableOpacity,
+  ScrollView,
+  Image,
+  ActivityIndicator,
+  Alert,
+  TextInput,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { LinearGradient } from 'expo-linear-gradient';
 
 export default function FinancingOptions() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [predictedImpact, setPredictedImpact] = useState(null);
-
-  const userFinancialData = {
-    Avg_Monthly_Sales: 50000,
-    Avg_Monthly_Expenses: 30000,
-    Volatility: 0.25,
-    Existing_Debt: 40000,
-    Loan_Request: 20000,
-    Net_Operating_Cash_Flow: 20000,
-    DSR: 2.0
-  };
+  const [chatVisible, setChatVisible] = useState(false);
+  const [chatMessages, setChatMessages] = useState([]);
+  const [chatInput, setChatInput] = useState('');
 
   useEffect(() => {
-    fetch('https://loan-eligibility-ml.onrender.com/predict', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(userFinancialData),
-    })
-      .then(res => res.json())
-      .then(data => {
-        console.log("AI Model Response:", data);
-        const risk = data.Risk_Category;
-
-        const colorMap = {
-          "Safe": "#30c2b7",
-          "Moderate": "#f5a623",
-          "High Risk": "#ff4d4f"
-        };
-
-        setPredictedImpact({
-          impact: risk,
-          color: colorMap[risk] || '#888'
-        });
-      })
-      .catch(err => {
-        console.error(err);
-        Alert.alert("Error", "Failed to fetch loan eligibility. Showing default options.");
-        setPredictedImpact({
-          impact: 'Safe',
-          color: '#30c2b7'
-        });
-      })
-      .finally(() => setLoading(false));
+    const mockImpact = 'Moderate';
+    const colorMap = {
+      Safe: '#30c2b7',
+      Moderate: '#f5a623',
+      'High Risk': '#ff4d4f',
+    };
+    setPredictedImpact({ impact: mockImpact, color: colorMap[mockImpact] || '#888' });
+    setLoading(false);
   }, []);
+
+  const sendChatMessage = async () => {
+    if (!chatInput.trim()) return;
+
+    const newMessages = [...chatMessages, { role: 'user', text: chatInput }];
+    setChatMessages(newMessages);
+
+    try {
+      const res = await fetch('https://zayed43.app.n8n.cloud/webhook/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: chatInput }),
+      });
+
+      const data = await res.json();
+      const reply = Array.isArray(data) && data[0]?.output ? data[0].output : 'No reply.';
+      setChatMessages((prev) => [...prev, { role: 'bot', text: reply }]);
+    } catch (err) {
+      setChatMessages((prev) => [...prev, { role: 'bot', text: 'Error sending message.' }]);
+    }
+
+    setChatInput('');
+  };
 
   const loans = [
     {
@@ -89,7 +93,7 @@ export default function FinancingOptions() {
     return (
       <SafeAreaView style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#30c2b7" />
-        <Text style={{ marginTop: 10, color: '#666' }}>Checking loan eligibility...</Text>
+        <Text style={{ marginTop: 10, color: '#666' }}>Preparing loan options...</Text>
       </SafeAreaView>
     );
   }
@@ -97,10 +101,19 @@ export default function FinancingOptions() {
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView showsVerticalScrollIndicator={false}>
-        <LinearGradient colors={['#30c2b7', '#26a69a']} style={styles.header}>
-          <Ionicons name="briefcase-outline" size={40} color="#fff" />
-          <Text style={styles.headerTitle}>Business Financing Options</Text>
-        </LinearGradient>
+        <View style={styles.financingTop}>
+          <Image source={require('@/assets/images/store.png')} style={styles.financingIcon} />
+          <Text style={styles.financingTitle}>Business Financing Options</Text>
+          <Text style={styles.financingSubtitle}>You can get up to</Text>
+          <Text style={styles.financingAmount}>RM 5,000</Text>
+          <Text style={styles.financingImpact}>
+            Your Repayment Impact:{' '}
+            <Text style={{ color: '#ff4d4f', fontWeight: 'bold' }}>● High Risk</Text>
+          </Text>
+          <TouchableOpacity style={styles.financingApplyButton}>
+            <Text style={styles.financingApplyText}>Apply Now for Free</Text>
+          </TouchableOpacity>
+        </View>
 
         {loans.map((loan) => (
           <View key={loan.id} style={styles.card}>
@@ -120,23 +133,54 @@ export default function FinancingOptions() {
 
               <View style={styles.repaymentImpact}>
                 <Ionicons name="checkmark-circle" size={16} color={predictedImpact?.color || '#30c2b7'} />
-                <Text style={[styles.impactText, { color: predictedImpact?.color || '#30c2b7' }]}>
-                  {'  '}Repayment Impact: {predictedImpact?.impact || 'Safe'}
-                </Text>
+                <Text style={[styles.impactText, { color: predictedImpact?.color || '#30c2b7' }]}>  Repayment Impact: {predictedImpact?.impact || 'Safe'}</Text>
               </View>
             </View>
 
-            <TouchableOpacity
-              style={styles.applyButton}
-              onPress={() => router.push('/maybanksme')}
-            >
-              <LinearGradient colors={['#30c2b7', '#26a69a']} style={styles.buttonGradient}>
-                <Text style={styles.applyText}>Apply Now</Text>
-              </LinearGradient>
+            <TouchableOpacity style={styles.applyButton} onPress={() => router.push('/maybanksme')}>
+              <View style={styles.buttonGradient}>
+                <Text style={styles.applyText}>Apply</Text>
+              </View>
             </TouchableOpacity>
           </View>
         ))}
       </ScrollView>
+
+      <TouchableOpacity
+        style={styles.chatIcon}
+        onPress={() => setChatVisible(!chatVisible)}
+      >
+        <Ionicons name="chatbubble-ellipses-outline" size={28} color="#fff" />
+      </TouchableOpacity>
+
+      {chatVisible && (
+        <View style={styles.chatPopup}>
+          <ScrollView style={styles.chatMessages} contentContainerStyle={{ padding: 10 }}>
+            {chatMessages.map((msg, i) => (
+              <View
+                key={i}
+                style={[styles.bubble, msg.role === 'user' ? styles.userBubble : styles.botBubble]}
+              >
+                <Text style={styles.bubbleText}>{msg.text}</Text>
+              </View>
+            ))}
+          </ScrollView>
+
+          <View style={styles.chatInputRow}>
+            <TextInput
+              value={chatInput}
+              onChangeText={setChatInput}
+              placeholder="Ask me anything..."
+              style={styles.chatInput}
+              onSubmitEditing={sendChatMessage}
+              returnKeyType="send"
+            />
+            <TouchableOpacity onPress={sendChatMessage}>
+              <Ionicons name="send" size={22} color="#30c2b7" />
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
     </SafeAreaView>
   );
 }
@@ -144,33 +188,11 @@ export default function FinancingOptions() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fdfdfd', padding: 20, paddingTop: 60 },
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  header: {
-    borderRadius: 15,
-    padding: 20,
-    alignItems: 'center',
-    marginBottom: 25,
-    shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowOffset: { width: 0, height: 4 },
-    shadowRadius: 8,
-    elevation: 5,
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#fff',
-    marginTop: 10,
-    textAlign: 'center',
-  },
   card: {
     backgroundColor: 'rgba(255,255,255,0.95)',
     borderRadius: 15,
     padding: 18,
     marginBottom: 20,
-    shadowColor: '#000',
-    shadowOpacity: 0.05,
-    shadowOffset: { width: 0, height: 3 },
-    shadowRadius: 8,
     borderWidth: 1,
     borderColor: '#e0f2f1',
   },
@@ -218,15 +240,119 @@ const styles = StyleSheet.create({
   applyButton: {
     marginTop: 15,
     borderRadius: 25,
-    overflow: 'hidden',
-  },
-  buttonGradient: {
-    paddingVertical: 12,
-    borderRadius: 25,
+    backgroundColor: '#30c2b7',
     alignItems: 'center',
+    paddingVertical: 12,
   },
   applyText: {
     color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 14,
+  },
+  chatIcon: {
+    position: 'absolute',
+    bottom: 20,
+    right: 20,
+    backgroundColor: '#30c2b7',
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  chatPopup: {
+    position: 'absolute',
+    bottom: 90,
+    right: 20,
+    width: 300,
+    height: 360,
+    backgroundColor: '#fff',
+    borderRadius: 15,
+    borderColor: '#ddd',
+    borderWidth: 1,
+  },
+  chatMessages: {
+    flex: 1,
+    maxHeight: 260,
+  },
+  chatInputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderTopWidth: 1,
+    borderColor: '#eee',
+  },
+  chatInput: {
+    flex: 1,
+    backgroundColor: '#f2f2f2',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    marginRight: 8,
+    fontSize: 14,
+  },
+  bubble: {
+    maxWidth: '80%',
+    padding: 10,
+    borderRadius: 12,
+    marginBottom: 6,
+  },
+  userBubble: {
+    backgroundColor: '#dcf8c6',
+    alignSelf: 'flex-end',
+  },
+  botBubble: {
+    backgroundColor: '#eee',
+    alignSelf: 'flex-start',
+  },
+  bubbleText: {
+    fontSize: 13.5,
+    lineHeight: 18,
+  },
+  financingTop: {
+    backgroundColor: '#30c2b7',
+    borderRadius: 20,
+    padding: 25,
+    alignItems: 'center',
+    marginBottom: 25,
+  },
+  financingIcon: {
+    width: 40,
+    height: 40,
+    marginBottom: 10,
+    tintColor: '#fff',
+  },
+  financingTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#fff',
+    marginBottom: 6,
+  },
+  financingSubtitle: {
+    fontSize: 14,
+    color: '#fff',
+    marginBottom: 2,
+  },
+  financingAmount: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: '#fff',
+    marginBottom: 6,
+  },
+  financingImpact: {
+    fontSize: 12,
+    color: '#fff',
+    marginBottom: 14,
+  },
+  financingApplyButton: {
+    backgroundColor: '#fff',
+    paddingHorizontal: 24,
+    paddingVertical: 10,
+    borderRadius: 20,
+  },
+  financingApplyText: {
+    color: '#30c2b7',
     fontWeight: 'bold',
     fontSize: 14,
   },

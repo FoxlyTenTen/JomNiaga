@@ -100,7 +100,7 @@ export default function LoanApplicationPage() {
         <Text style={styles.sectionTitle}>Upload Required Documents</Text>
         <View style={styles.card}>
           <View style={styles.uploadRow}>
-            <Image source={require('@/assets/images/mykad.png')} style={styles.uploadIcon} />
+            <Image source={require('@/assets/images/mykad.jpeg')} style={styles.uploadIcon} />
             <Text style={styles.uploadText}>MyKad{"\n"}<Text style={styles.green}>Uploaded</Text></Text>
           </View>
 

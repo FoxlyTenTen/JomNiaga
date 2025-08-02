@@ -32,6 +32,16 @@ export default function RootLayout() {
         <Stack.Screen name="maybanksme" options={{ headerShown: false, animation: 'slide_from_right' }} />
         <Stack.Screen name="profile" options={{ headerShown: false, animation: 'slide_from_right' }} />
         <Stack.Screen name="submittedSme" options={{ headerShown: false, animation: 'slide_from_right' }} />
+        <Stack.Screen name="register" options={{ headerShown: false, animation: 'fade_from_bottom' }} />
+        <Stack.Screen name="signIn" options={{ headerShown: false, animation: 'fade_from_bottom' }} />
+        <Stack.Screen name="businessDetails" options={{ headerShown: false, animation: 'fade_from_bottom' }} />
+        <Stack.Screen name="niagaComm" options={{ headerShown: false, animation: 'slide_from_right' }} />
+        <Stack.Screen name="duitnow" options={{ headerShown: false, animation: 'slide_from_right' }} />
+        <Stack.Screen name="mdec" options={{ headerShown: false, animation: 'slide_from_right' }} />
+        <Stack.Screen name="cupcake" options={{ headerShown: false, animation: 'slide_from_right' }} />
+        <Stack.Screen name="niagaCentre" options={{ headerShown: false, animation: 'slide_from_right' }} />
+        <Stack.Screen name="product" options={{ headerShown: false, animation: 'slide_from_right' }} />
+        
         <Stack.Screen name="+not-found" />
       </Stack>
       <StatusBar style="auto" />

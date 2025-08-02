@@ -10,37 +10,42 @@ export default function MilestonePage() {
     {
       id: 1,
       title: 'Register with SSM',
-      status: 'Pending Approval',
+      status: 'Completed',
       icon: require('@/assets/images/ssm.png'),
       action: () => router.push('/compProgress'),
+      completed: true,
     },
     {
       id: 2,
       title: 'Open Business Account *',
-      status: 'Not Completed',
+      status: 'Completed',
       icon: require('@/assets/images/bank.png'),
       action: () => router.push('/bank-registration'),
+      completed: true,
     },
     {
       id: 3,
       title: 'Register with EPF & SOCSO *',
-      status: 'Not Completed',
+      status: 'Completed',
       icon: require('@/assets/images/epf.png'),
       action: () => router.push('/epf-socso-registration'),
+      completed: true,
     },
     {
       id: 4,
       title: 'Apply for Necessary Licenses',
-      status: 'Optional',
+      status: 'Completed',
       icon: require('@/assets/images/license.png'),
       action: () => router.push('/license-application'),
+      completed: true,
     },
     {
       id: 5,
       title: 'Generate Business QR Payment',
-      status: 'Not Completed',
+      status: 'Completed',
       icon: require('@/assets/images/duitnow.png'),
       action: () => router.push('/qr-generation'),
+      completed: true,
     },
   ];
 
@@ -53,12 +58,12 @@ export default function MilestonePage() {
         <View style={styles.timeline}>
           {milestones.map((milestone, index) => (
             <View key={milestone.id} style={styles.milestoneItem}>
-              <LinearGradient
-                colors={['#30c2b7', '#26a69a']}
-                style={styles.numberCircle}
-              >
-                <Text style={styles.numberText}>{milestone.id}</Text>
-              </LinearGradient>
+              <View style={styles.numberCircleFlat}>
+              <Text style={styles.numberText}>
+              {milestone.completed ? '✓' : milestone.id}</Text>
+
+            </View>
+
 
               <View style={styles.milestoneContent}>
                 <View style={styles.milestoneTopRow}>
@@ -75,7 +80,16 @@ export default function MilestonePage() {
                 </View>
               </View>
 
-              {index !== milestones.length - 1 && <View style={styles.verticalLine} />}
+              {index !== milestones.length - 1 && (
+                <View
+                  style={[
+                    styles.verticalLine,
+                    milestone.completed && milestones[index + 1]?.completed && styles.verticalLineCompleted,
+                  ]}
+                />
+              )}
+
+
             </View>
           ))}
         </View>
@@ -116,11 +130,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 15,
-    shadowColor: '#30c2b7',
-    shadowOpacity: 0.3,
-    shadowOffset: { width: 0, height: 3 },
-    shadowRadius: 5,
-    elevation: 4,
   },
   numberText: {
     color: '#fff',
@@ -183,13 +192,27 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     fontSize: 13,
   },
-  verticalLine: {
-    position: 'absolute',
-    top: 36,
-    left: 18,
-    width: 2,
-    height: 55,
-    backgroundColor: '#e0f2f1',
-    zIndex: -1,
-  },
+  numberCircleFlat: {
+  width: 36,
+  height: 36,
+  borderRadius: 18,
+  justifyContent: 'center',
+  alignItems: 'center',
+  marginRight: 15,
+  backgroundColor: '#30c2b7', // flat teal
+},
+verticalLine: {
+  position: 'absolute',
+  top: 0,                // ← Start from top of numberCircle
+  left: 18,
+  width: 2,
+  height: 80,            // ← Long enough to reach next numberCircle
+  backgroundColor: '#e0f2f1',
+  zIndex: -1,
+},
+
+verticalLineCompleted: {
+  backgroundColor: '#30c2b7', // completed: active color
+},
+
 });

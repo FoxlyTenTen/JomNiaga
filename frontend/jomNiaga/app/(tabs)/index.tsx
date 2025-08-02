@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import {
   SafeAreaView,
   StyleSheet,
@@ -8,13 +8,63 @@ import {
   ScrollView,
   Clipboard,
   Alert,
+  Animated,
+  Dimensions,
+  Pressable,
 } from 'react-native';
 import { Ionicons, Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
+import { onAuthStateChanged, signOut } from 'firebase/auth';
+import { auth } from '@/firebaseConfig';
+
+const screenWidth = Dimensions.get('window').width;
 
 export default function BusinessWallet() {
   const router = useRouter();
+  const [user, setUser] = useState(null);
+  const [sidebarVisible, setSidebarVisible] = useState(false);
+  const slideAnim = useRef(new Animated.Value(-screenWidth)).current;
+
+  const toggleSidebar = () => {
+    setSidebarVisible(!sidebarVisible);
+    Animated.timing(slideAnim, {
+      toValue: sidebarVisible ? -screenWidth : 0,
+      duration: 300,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (authUser) => {
+      setUser(authUser);
+    });
+    return unsubscribe;
+  }, []);
+
+  const handleCopy = () => {
+    Clipboard.setString('97499872422222');
+    Alert.alert('Copied', 'Account number copied to clipboard');
+  };
+
+  const handleSignOut = async () => {
+    try {
+      await signOut(auth);
+      Alert.alert('Signed out', 'You have been signed out.');
+      toggleSidebar();
+    } catch (error) {
+      Alert.alert('Error', 'Failed to sign out');
+    }
+  };
+
+  const sidebarLinks = [
+    { label: 'About JomNiaga', icon: 'information-circle-outline', route: '/about' },
+    { label: 'NiagaBot', icon: 'chatbubbles-outline', route: '../business' },
+    { label: 'NiagaCommunity', icon: 'people-outline', route: '/niagaComm' },
+    { label: 'NiagaCentre', icon: 'briefcase-outline', route: '/niagaCentre' },
+    { label: 'Privacy', icon: 'shield-outline', route: '/privacy' },
+    { label: 'Settings', icon: 'settings-outline', route: '/settings' },
+  ];
 
   const transactions = [
     {
@@ -27,7 +77,7 @@ export default function BusinessWallet() {
     },
     {
       id: 2,
-      type: 'Receive',
+      type: 'Send',
       from: 'NASI PAIPON KL SDN BHD',
       amount: 150.0,
       time: '17:30',
@@ -35,7 +85,7 @@ export default function BusinessWallet() {
     },
     {
       id: 3,
-      type: 'Send',
+      type: 'Receive',
       from: 'NASI PAIPON KL SDN BHD',
       amount: 150.0,
       time: '17:30',
@@ -43,71 +93,107 @@ export default function BusinessWallet() {
     },
   ];
 
-  const handleCopy = () => {
-    Clipboard.setString('97499872422222');
-    Alert.alert('Copied', 'Account number copied to clipboard');
-  };
-
   return (
     <SafeAreaView style={styles.container}>
+      {sidebarVisible && <Pressable style={styles.overlay} onPress={toggleSidebar} />}
+      <Animated.View style={[styles.sidebar, { transform: [{ translateX: slideAnim }] }]}>
+        <View style={styles.sidebarHeader}>
+          <View style={styles.profileSection}>
+            <View style={styles.avatar} />
+            <View>
+              <Text style={styles.name}>Nasi Paipon</Text>
+              <Text style={styles.email}>nasipaiponextradeals@gmail.com</Text>
+            </View>
+          </View>
+        </View>
+
+        <View style={styles.sidebarItems}>
+          {sidebarLinks.map((item, index) => (
+            <TouchableOpacity
+              key={index}
+              style={styles.sidebarItem}
+              onPress={() => {
+                toggleSidebar();
+                router.push(item.route);
+              }}
+            >
+              <Ionicons name={item.icon} size={20} color="#111" />
+              <Text style={styles.sidebarLabel}>{item.label}</Text>
+            </TouchableOpacity>
+          ))}
+
+          <TouchableOpacity style={styles.logoutItem} onPress={handleSignOut}>
+            <Ionicons name="power-outline" size={20} color="red" />
+            <Text style={styles.logoutLabel}>Log out</Text>
+          </TouchableOpacity>
+        </View>
+      </Animated.View>
+
       <ScrollView showsVerticalScrollIndicator={false}>
-        {/* Wallet Header */}
         <View style={styles.headerContainer}>
-          <Ionicons name="wallet-outline" size={44} color="#30c2b7" />
+          <TouchableOpacity style={styles.leftIcon} onPress={toggleSidebar}>
+            <Feather name="menu" size={22} color="#30c2b7" />
+          </TouchableOpacity>
+
+          <Ionicons name="wallet-outline" size={52} color="#30c2b7" />
           <Text style={styles.headerTitle}>Business Wallet</Text>
 
           <TouchableOpacity
             style={styles.profileButton}
             onPress={() => router.push('/profile')}
           >
-            <Feather name="user" size={22} color="#30c2b7" />
+            <Feather name="user" size={24} color="#30c2b7" />
           </TouchableOpacity>
         </View>
 
-        {/* Balance Card */}
         <LinearGradient
-          colors={['#ffffff', '#f0fdfa']}
+          colors={['#98d1cdff', '#30c2b7', '#30c2b7', '#98d1cdff']}
           style={styles.balanceCard}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
         >
           <Text style={styles.balanceAmount}>RM 940.65</Text>
           <Text style={styles.balanceLabel}>Total Balance</Text>
 
           <TouchableOpacity style={styles.accountNumberContainer} onPress={handleCopy}>
             <Text style={styles.accountNumber}>97499872422222</Text>
-            <Feather name="copy" size={16} color="#30c2b7" />
+            <Feather name="copy" size={18} color="#30c2b7" />
           </TouchableOpacity>
         </LinearGradient>
 
-        {/* Action Buttons */}
         <View style={styles.actionsContainer}>
-          <TouchableOpacity style={styles.actionButton} onPress={() => router.push('/transfer')}>
-            <LinearGradient colors={['#30c2b7', '#26a69a']} style={styles.iconButton}>
-              <Ionicons name="swap-horizontal-outline" size={24} color="#fff" />
-            </LinearGradient>
+          <TouchableOpacity
+            style={styles.actionButton}
+            onPress={() => router.push('/')}
+          >
+            <View style={styles.flatIconButton}>
+              <Ionicons name="arrow-down-circle" size={26} color="#fff" />
+            </View>
             <Text style={styles.actionText}>Transfer</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.actionButton} onPress={() => router.push('/transactions')}>
-            <LinearGradient colors={['#30c2b7', '#26a69a']} style={styles.iconButton}>
-              <Ionicons name="list-outline" size={24} color="#fff" />
-            </LinearGradient>
-            <Text style={styles.actionText}>Transactions</Text>
+          <TouchableOpacity
+            style={styles.actionButton}
+            onPress={() => router.push('/')}
+          >
+            <View style={styles.flatIconButton}>
+              <Ionicons name="swap-horizontal" size={26} color="#fff" />
+            </View>
+            <Text style={styles.actionText}>Transaction</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.actionButton} onPress={() => router.push('/statement')}>
-            <LinearGradient colors={['#30c2b7', '#26a69a']} style={styles.iconButton}>
-              <Ionicons name="document-text-outline" size={24} color="#fff" />
-            </LinearGradient>
+          <TouchableOpacity
+            style={styles.actionButton}
+            onPress={() => router.push('/')}
+          >
+            <View style={styles.flatIconButton}>
+              <Ionicons name="file-tray" size={26} color="#fff" />
+            </View>
             <Text style={styles.actionText}>Statement</Text>
           </TouchableOpacity>
         </View>
 
-        {/* Recent Transactions */}
         <View style={styles.transactionHeader}>
           <Text style={styles.sectionTitle}>Recent Transactions</Text>
-          <TouchableOpacity onPress={() => router.push('/transactions')}>
+          <TouchableOpacity onPress={() => router.push('/')}>
             <Text style={styles.viewAllText}>View Details</Text>
           </TouchableOpacity>
         </View>
@@ -118,7 +204,7 @@ export default function BusinessWallet() {
               <View style={styles.transactionLeft}>
                 <Ionicons
                   name={tx.type === 'Receive' ? 'arrow-down-circle' : 'arrow-up-circle'}
-                  size={26}
+                  size={28}
                   color={tx.type === 'Receive' ? '#30c2b7' : '#ff4d4f'}
                 />
                 <View style={styles.transactionDetails}>
@@ -142,158 +228,45 @@ export default function BusinessWallet() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f9f9f9',
-    padding: 20,
-    paddingTop: 40,
-  },
-  headerContainer: {
-    alignItems: 'center',
-    marginBottom: 20,
-    position: 'relative',
-  },
-  headerTitle: {
-    fontSize: 22,
-    color: '#30c2b7',
-    marginTop: 10,
-    fontWeight: 'bold',
-    letterSpacing: 1,
-  },
-  profileButton: {
-    position: 'absolute',
-    right: 0,
-    top: 10,
-    backgroundColor: '#e0f2f1',
-    padding: 8,
-    borderRadius: 20,
-    shadowColor: '#000',
-    shadowOpacity: 0.08,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 3,
-  },
-  balanceCard: {
-    borderRadius: 20,
-    padding: 25,
-    alignItems: 'center',
-    marginBottom: 25,
-    shadowColor: '#000',
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 4,
-    borderWidth: 1,
-    borderColor: '#e0f2f1',
-  },
-  balanceAmount: {
-    color: '#222',
-    fontSize: 36,
-    fontWeight: 'bold',
-    marginBottom: 6,
-  },
-  balanceLabel: {
-    color: '#666',
-    fontSize: 14,
-    marginBottom: 16,
-  },
-  accountNumberContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#e0f2f1',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: '#b2f5f3',
-  },
-  accountNumber: {
-    color: '#30c2b7',
-    fontSize: 15,
-    fontWeight: '500',
-    marginRight: 10,
-  },
-  actionsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    marginBottom: 30,
-  },
-  actionButton: {
-    alignItems: 'center',
-  },
-  iconButton: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 8,
-    shadowColor: '#000',
-    shadowOpacity: 0.12,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 4,
-  },
-  actionText: {
-    fontSize: 13,
-    color: '#444',
-    fontWeight: '500',
-  },
-  transactionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 12,
-    alignItems: 'center',
-  },
-  sectionTitle: {
-    fontSize: 17,
-    fontWeight: 'bold',
-    color: '#333',
-  },
-  viewAllText: {
-    color: '#30c2b7',
-    fontSize: 13,
-    fontWeight: '500',
-  },
-  transactionList: {
-    backgroundColor: '#ffffff',
-    borderRadius: 15,
-    padding: 16,
-    shadowColor: '#000',
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 2,
-  },
-  transactionItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 18,
-    alignItems: 'center',
-    paddingBottom: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
-  },
-  transactionLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-  },
-  transactionDetails: {
-    marginLeft: 14,
-  },
-  transactionFrom: {
-    fontSize: 15,
-    color: '#222',
-    fontWeight: '500',
-  },
-  transactionMethod: {
-    fontSize: 12,
-    color: '#888',
-    marginTop: 2,
-  },
-  transactionAmount: {
-    fontSize: 15,
-    fontWeight: 'bold',
-  },
+  container: { flex: 1, backgroundColor: '#f9f9f9', padding: 20, paddingTop: 50 },
+  headerContainer: { alignItems: 'center', marginBottom: 24, position: 'relative' },
+  leftIcon: { position: 'absolute', left: 0, top: 10, backgroundColor: '#e0f2f1', padding: 10, borderRadius: 24 },
+  headerTitle: { fontSize: 26, color: '#30c2b7', marginTop: 10, fontWeight: 'bold' },
+  profileButton: { position: 'absolute', right: 0, top: 10, backgroundColor: '#e0f2f1', padding: 10, borderRadius: 24 },
+
+  balanceCard: { borderRadius: 24, padding: 30, alignItems: 'center', marginBottom: 30, borderWidth: 1, borderColor: '#e0f2f1' },
+  balanceAmount: { fontSize: 40, fontWeight: 'bold',  marginBottom: 6, color: 'white', },
+  balanceLabel: { fontSize: 16, color: '#666', marginBottom: 18 },
+  accountNumberContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#e0f2f1', paddingHorizontal: 20, paddingVertical: 12, borderRadius: 24 },
+  accountNumber: { fontSize: 16, color: '#30c2b7', fontWeight: '600', marginRight: 12 },
+
+  actionsContainer: { flexDirection: 'row', justifyContent: 'space-around', marginBottom: 30 },
+  actionButton: { alignItems: 'center' },
+  flatIconButton: { width: 64, height: 64, borderRadius: 16, justifyContent: 'center', alignItems: 'center', backgroundColor: '#30c2b7' },
+  actionText: { fontSize: 14, color: '#444', fontWeight: '500' },
+
+  transactionHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 14 },
+  sectionTitle: { fontSize: 18, fontWeight: 'bold', color: '#333' },
+  viewAllText: { fontSize: 14, color: '#30c2b7', fontWeight: '500' },
+
+  transactionList: { backgroundColor: '#ffffff', borderRadius: 18, padding: 18 },
+  transactionItem: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 20, alignItems: 'center', paddingBottom: 10, borderBottomWidth: 1, borderBottomColor: '#f0f0f0' },
+  transactionLeft: { flexDirection: 'row', alignItems: 'center', flex: 1 },
+  transactionDetails: { marginLeft: 16 },
+  transactionFrom: { fontSize: 16, color: '#222', fontWeight: '500' },
+  transactionMethod: { fontSize: 13, color: '#888', marginTop: 2 },
+  transactionAmount: { fontSize: 16, fontWeight: 'bold' },
+
+  overlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: '#00000055', zIndex: 10 },
+  sidebar: { position: 'absolute', top: 0, left: 0, bottom: 0, width: screenWidth * 0.8, backgroundColor: '#fff', paddingTop: 50, zIndex: 20 },
+  sidebarHeader: { backgroundColor: '#30c2b7', padding: 20, borderTopRightRadius: 20, borderBottomRightRadius: 20 },
+  profileSection: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  avatar: { width: 48, height: 48, borderRadius: 24, backgroundColor: '#fff' },
+  name: { fontSize: 16, fontWeight: 'bold', color: '#fff' },
+  email: { fontSize: 12, color: '#fff' },
+  sidebarItems: { padding: 20 },
+  sidebarItem: { flexDirection: 'row', alignItems: 'center', gap: 16, paddingVertical: 12 },
+  sidebarLabel: { fontSize: 16, color: '#111' },
+  logoutItem: { flexDirection: 'row', alignItems: 'center', gap: 16, paddingVertical: 20, marginTop: 30 },
+  logoutLabel: { fontSize: 16, color: 'red' },
 });

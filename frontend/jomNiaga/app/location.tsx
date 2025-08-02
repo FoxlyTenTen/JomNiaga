@@ -8,11 +8,11 @@ export default function LocationScreen() {
   const { selectedDate, businessType, industry } = useLocalSearchParams();
 
   const [form, setForm] = useState({
-    address1: '',
-    address2: '',
-    postcode: '',
-    city: '',
-    state: '',
+    address1: 'Universiti Tenaga Nasional (UNITEN)',
+    address2: 'Putrajaya Campus',
+    postcode: '43000',
+    city: 'Kajang',
+    state: 'Selangor',
   });
 
   useEffect(() => {
