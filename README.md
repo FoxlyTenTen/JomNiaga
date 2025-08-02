@@ -63,7 +63,7 @@ By streamlining onboarding into a **single, reusable flow**, JomNiaga reduces pa
 
 ## 🏗️ Solution Architecture
 
-![Solution Architecture](./solution.png)  
+![Solution Architecture](./solution.jpg)  
 
 ---
 
