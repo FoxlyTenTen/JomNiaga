@@ -3,6 +3,11 @@
 #### *"Simplifying business for all in one platform, one journey, and endless growth."* 🚀
 
 ---
+## Get Started with JomNiaga  
+Click this link to download JomNiaga.apk  
+https://expo.dev/artifacts/eas/6ZVxGZeSQLhFhvTgjRBHj2.apk
+
+---
 
 ## 📝 Overview
 
