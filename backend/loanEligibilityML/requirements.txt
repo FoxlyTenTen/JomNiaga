@@ -1,0 +1,14 @@
+# Core Python packages
+pandas
+numpy
+
+# Machine Learning
+scikit-learn
+joblib
+
+# Web framework
+fastapi
+uvicorn
+
+# Utilities
+pydantic
